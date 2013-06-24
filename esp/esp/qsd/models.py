@@ -83,6 +83,26 @@ class QuasiStaticData(models.Model):
     keywords = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
 
+    version = models.IntegerField()
+
+    def next_version(self):
+        """ Get a new version number.
+
+        Returns the first version number greater than that of all existing
+        QSDs at the same URI.
+
+        Pretends QSDs are never moved. Maybe we'll deal with that later."""
+        qs = QuasiStaticData.objects.filter(path=self.path, name=self.name)
+        if qs.exists():
+            return max(self.version, qs.order_by('-version').values_list('version', flat=True)[0]) + 1
+        else:
+            return 1
+
+    def save(self, *args, **kwargs):
+        # Bump the version with every save.
+        self.version = self.next_version()
+        super(QuasiStaticData, self).save(*args, **kwargs)
+
     def get_file_id(self):
         """Get the file_id of the object.
 
