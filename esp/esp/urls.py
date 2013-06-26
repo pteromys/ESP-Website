@@ -55,6 +55,7 @@ urlpatterns = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + st
 urlpatterns += patterns('',
                      (r'^admin/doc/', include('django.contrib.admindocs.urls')),
                      (r'^admin/ajax_qsd/?', 'esp.qsd.views.ajax_qsd'),
+                     (r'^admin/qsd_fragment/(?P<cmd>[^/]+)/?', 'esp.qsd.views.qsd_fragment'),
                      (r'^admin/ajax_autocomplete/?', 'esp.db.views.ajax_autocomplete'),
                      (r'^admin/ajax_children/?', 'esp.datatree.views.ajax_children'),
                      (r'^admin/', include(admin_site.urls)),

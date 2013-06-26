@@ -33,6 +33,7 @@ Learning Unlimited, Inc.
   Email: web-team@lists.learningu.org
 """
 from esp.qsd.models import QuasiStaticData
+from esp.qsd.forms import QSDEditForm
 from django.contrib.auth.models import User
 from esp.users.models import ContactInfo, UserBit, GetNodeOrNoBits
 from esp.datatree.models import *
@@ -53,6 +54,8 @@ from django.utils.cache import add_never_cache_headers, patch_cache_control, pat
 from django.views.decorators.vary import vary_on_cookie
 from django.views.decorators.cache import cache_control
 from esp.cache.varnish import purge_page
+import urllib
+import reversion
 
 # default edit permission
 EDIT_PERM = 'V/Administer/Edit'
@@ -308,3 +311,131 @@ def ajax_qsd(request):
         result['id'] = qsd.id
     
     return HttpResponse(simplejson.dumps(result))
+
+def qsd_fragment(request, cmd):
+    """QSD requests that return fragments"""
+    from django.utils import simplejson
+    from django.conf import settings
+    import pytz
+
+    def can_edit(user, tree_uri):
+        # I chose to make this inefficient rather than create a slew of datatree nodes
+        VERB = 'V/Administer/Edit/QSD'
+        if UserBit.UserHasPerms(user, tree_uri, VERB):
+            return True
+        while DataTree.DELIMITER in tree_uri:
+            tree_uri = tree_uri.rsplit(DataTree.DELIMITER, 1)[0]
+            if UserBit.UserHasPerms(user, tree_uri, VERB, recursive_required = True):
+                return True
+        return False
+
+    def get_url_parts(url):
+        # I really hope I don't have to maintain this.
+        from esp.section_data import section_redirect_keys, section_prefix_keys
+        # Preprocess the URL: strip spaces and leading slash
+        url = url.strip()
+        if url[0] == '/':
+            url = url[1:]
+        # Extract subsection
+        parts = url.split('/')
+        if parts[0] in section_redirect_keys:
+            subsection = parts.pop(0)
+        else:
+            subsection = None
+        # Find a DataTree node
+        parts[:0] = ['Q', section_redirect_keys[subsection]]
+        view_address = parts.pop()[:-5] # assumes ".html" ending
+        if not view_address.strip():
+            return None  #empty final component is invalid
+        tree_uri = DataTree.DELIMITER.join(parts)
+        # Tag the view address with a subsection prefix
+        if section_prefix_keys.has_key(subsection):
+            subsection = section_prefix_keys[subsection]
+        if subsection:
+            view_address = '%s:%s' % (subsection, view_address)
+        # Finally, return. Phew!
+        return (tree_uri, view_address)
+
+    def get_by_url(url):
+        try:
+            tree_uri, view_address = get_url_parts(url)
+            return QuasiStaticData.objects.get_by_path__name(DataTree.get_by_uri(tree_uri), view_address)
+        except (DataTree.DoesNotExist, QuasiStaticData.DoesNotExist):
+            return None
+
+    def check_perms(user, url):
+        if user.id is None:
+            return (undefined_user_message(), None, None)
+        tree_uri, view_address = get_url_parts(url)
+        if not can_edit(user, tree_uri):
+            return (permission_denied_message(), tree_uri, view_address)
+        return (None, tree_uri, view_address)
+
+    def last_revision_string(q):
+        if q.id is None:
+            return ''
+        ans = reversion.get_for_object(q).order_by('-revision__date_created')
+        if ans:
+            return ans[0].revision.date_created.isoformat()
+
+    permission_denied_message = lambda: HttpResponse(content='You don\'t have permission to edit this page.', status=403)
+    undefined_user_message = lambda: HttpResponse(content='Oops! Your session expired!\nPlease open another window, log in, and try again.\nYour changes will not be lost if you keep this page open.', status=403)
+    not_found_message = lambda: HttpResponse(content='No QSD found at %s' % url, status=404)
+
+
+    url = request.POST.get('url', request.GET.get('url'))
+    if url is None:
+        return HttpResponse(content='What URL?', status=404)
+    # Knock off everything but the path name, just in case JS passed us something silly.
+    url = urllib.splithost(urllib.splittype(url)[1])[1]
+
+    if cmd == 'write':
+        msg, tree_uri, view_address = check_perms(request.user, url)
+        if msg:
+            return msg
+        anchor = GetNode(tree_uri)
+        q = QuasiStaticData.objects.get_by_path__name(anchor, view_address) or QuasiStaticData()
+        if last_revision_string(q) != request.POST['last_revision_string']:
+            return HttpResponse(content="Edit conflict! The page has been rewritten since you opened it.", status=409)
+        q.path = anchor
+        q.name = view_address
+        q.author = request.user
+        q.create_date = datetime.now()
+        with reversion.create_revision():
+            q = QSDEditForm(request.POST, instance=q).save()
+        # We should also purge the cache
+        purge_page(q.url())
+        # Return updated HTML
+        cmd = 'html'
+        url = q.url()
+    if cmd == 'delete':
+        msg, tree_uri, view_address = check_perms(request.user, url)
+        if msg:
+            return msg
+        q = get_by_url(url)
+        if q:
+            #with reversion.create_revision():
+            #    q.delete()
+            return HttpResponse(content='Deleted %s' % url)
+        else:
+            return not_found_message()
+    if cmd == 'form':
+        msg, tree_uri, view_address = check_perms(request.user, url)
+        if msg:
+            return msg
+        basename = url.rsplit('/', 1)[-1].split('.', 1)[0]
+        q = get_by_url(url) or QuasiStaticData()
+        f = QSDEditForm(instance=q, auto_id='id_%%s_%s' % basename, label_suffix='',
+            initial={'url': url, 'last_revision_string': last_revision_string(q)})
+        return render_to_response('qsd/qsd_form_fragment.html', {'form': f})
+    if cmd == 'html':
+        q = get_by_url(url)
+        if q:
+            return HttpResponse(content=q.html())
+        else:
+            return not_found_message()
+    if cmd == 'diff':
+        pass # Not Implemented
+
+    return HttpResponse('No such command.', status=404) #400?
+

@@ -101,3 +101,14 @@ class QSDBulkMoveForm(forms.Form):
                         qsd.name = orig_name
                         
                 qsd.save()
+
+class QSDEditForm(forms.ModelForm):
+    url = forms.CharField(max_length=256, help_text="Full url, without the trailing .html")
+    last_revision_string = forms.CharField(max_length=256, required=False, widget=forms.HiddenInput)
+    class Meta:
+        model = QuasiStaticData
+        fields = ('content', 'title', 'nav_category', 'keywords', 'description')
+        widgets = {
+            'content': forms.Textarea(attrs={'rows': 20}),
+            'keywords': forms.Textarea(attrs={'rows': 3}),
+        }

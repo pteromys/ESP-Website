@@ -10,7 +10,7 @@ from urllib import quote
 
 register = template.Library()
 
-@cache_inclusion_tag(register,'inclusion/qsd/render_qsd.html')
+@cache_inclusion_tag(register,'inclusion/qsd/qsd.html')
 def render_qsd(qsd):
     return {'qsdrec': qsd}
 render_qsd.cached_function.depend_on_row(QuasiStaticData, lambda qsd: {'qsd': qsd})

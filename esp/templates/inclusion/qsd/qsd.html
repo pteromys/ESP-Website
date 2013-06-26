@@ -1,0 +1,14 @@
+{# load markdown #}
+
+{# <link rel="stylesheet" type="text/css" href="/media/styles/qsd2.css" /> #}
+
+<form class="qsd_buttons" method="get" action="{{ qsdrec.edit_url }}">
+	<div class="qsd_bits">
+		{# <input type="reset" name="refresh" value="&#8635; Refresh" /> #}
+		<input type="submit" name="edit" value="&#9998; Edit" />
+	</div>
+</form>
+<div class="qsd_content prettify">
+	{% autoescape off %}{{ qsdrec.html }}{% endautoescape %}
+</div>
+

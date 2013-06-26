@@ -184,6 +184,8 @@ class QuasiStaticData(models.Model):
             
     def __unicode__(self):
         return (self.path.full_name() + ':' + self.name + '.html' )
+    def edit_url(self):
+        return self.url()[:-5] + '.edit.html'
 
     @cache_function
     def html(self):

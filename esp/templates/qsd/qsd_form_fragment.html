@@ -1,0 +1,20 @@
+<form class="qsd_form" method="post" action="/admin/qsd_fragment/write/">
+	<div>
+		<input type="button" name="delete" value="&#9889; Delete" />
+		<input type="button" name="cancel" value="&times; Cancel" />
+		<input type="submit" name="save" value="&#10003; Save" />
+		{{ form.last_revision_string }}
+	</div>
+	<ul>
+		<li><a href="#{{ form.title.id_for_label }}">Edit Metadata</a></li>
+		<li>{{ form.content.label_tag }}{{ form.content }}</li>
+	</ul>
+	<ul>
+		<li><a href="#{{ form.content.id_for_label }}">Edit Content</a></li>
+		<li>{{ form.title.label_tag }}{{ form.title }}</li>
+		<li>{{ form.url.label_tag }}{{ form.url }}</li>
+		<li>{{ form.nav_category.label_tag }}{{ form.nav_category }}</li>
+		<li>{{ form.keywords.label_tag }}{{ form.keywords }}</li>
+		<li>{{ form.description.label_tag }}{{ form.description }}</li>
+	</ul>
+</form>

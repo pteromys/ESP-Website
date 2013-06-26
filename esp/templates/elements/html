@@ -35,6 +35,7 @@
     <script type="text/javascript" src="/media/scripts/content/user_data.js"></script>
     <script type="text/javascript" src="/media/scripts/content/user_classes.js"></script>
     <script type="text/javascript" src="/media/scripts/csrf_init.js"></script>
+    <script type="text/javascript" src="/media/scripts/qsd2.js"></script>
     
     <script type="text/javascript" src="https://d3eoax9i5htok0.cloudfront.net/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/x-mathjax-config">
@@ -71,6 +72,7 @@
 {% block jquery_ui_stylesheet_version %}
 <link rel="stylesheet" type="text/css" href="/media/styles/jquery-ui/jquery-ui.css" />
 {% endblock %}
+<link rel="stylesheet" type="text/css" href="/media/styles/qsd2.css" />
 {% endblock %}
 
 {% block xtrajs %}{% endblock %}
