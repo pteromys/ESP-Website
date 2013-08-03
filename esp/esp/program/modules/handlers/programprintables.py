@@ -1013,7 +1013,7 @@ Volunteer schedule for %s:
     
         basedir = 'program/modules/programprintables/'
         if file_type == 'html':
-            return render_to_response(basedir+'studentschedule.html', request, (prog, tl), context)
+            return render_to_response(basedir+'studentschedule.html', request, (prog, 'manage'), context)
         else:  # elif format == 'pdf':
             from esp.web.util.latex import render_to_latex
             schedule_template = select_template([basedir+'program_custom_schedules/%s_studentschedule.tex' %(prog.id), basedir+'studentschedule.tex'])
